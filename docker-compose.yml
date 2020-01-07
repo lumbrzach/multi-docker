@@ -1,0 +1,55 @@
+version: '3'
+services:
+  postgres:
+    image: 'postgres:latest'
+  redis:
+    image: 'redis:latest'
+  nginx:
+    restart: always
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./nginx
+    ports:
+      - '3050:80'
+  api:
+    depends_on:
+      - postgres
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./server
+    volumes:
+      # The first line means leave this alone/skip it
+      - /app/node_modules
+      # The second line means copy everything else in server file to /app
+      - ./server:/app
+    environment:
+      # specify an array in docker-compose with a "-"
+      # the following is actually an array
+      # can use only the service name if defined in same file
+      - REDIS_HOST=redis
+      # this is the default redis port from docs
+      - REDIS_PORT=6379
+      # consult the docs for these default variables
+      # also remember that you can use the service name if defined in file already
+      - PGUSER=postgres
+      - PGHOST=postgres
+      - PGDATABASE=postgres
+      - PGPASSWORD=postgres_password
+      - PGPORT=5432
+  client:
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./client
+    volumes:
+      - /app/node_modules
+      - ./client:/app
+  worker:
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./worker
+    volumes:
+      - /app/node_modules
+      - ./worker:/app
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
