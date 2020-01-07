@@ -1,0 +1,26 @@
+sudo: required
+services:
+  - docker
+
+before_install:
+  - docker build -t lumbrzach/react-test -f ./client/Dockerfile.dev ./client
+
+script:
+  - docker run -e CI=true lumbrzach/react-test npm test
+
+after_success:
+  # Build production images after testing.
+  # Don't need to specify Dockerfile as we did in development and testing
+  # since it is only "regular" one available in the relevant directories
+  - docker build -t lumbrzach/multi-client ./client
+  - docker build -t lumbrzach/multi-nginx ./nginx
+  - docker build -t lumbrzach/multi-server ./server
+  - docker build -t lumbrzach/multi-worker ./worker
+  # Log into docker hub CLI.
+  # Use env variables in travis CI to do so without exposing sensitive info
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
+  # Push images to the hub
+  - docker push lumbrzach/multi-client
+  - docker push lumbrzach/multi-nginx
+  - docker push lumbrzach/multi-server
+  - docker push lumbrzach/multi-worker
